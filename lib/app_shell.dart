@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'collectionpage.dart';
 import 'downloadpage.dart';
@@ -25,6 +25,8 @@ class SoundEffectApp extends StatefulWidget {
 
 class _SoundEffectAppState extends State<SoundEffectApp> {
   static const _customTitlesKey = 'soundeffect.custom_titles';
+  static const _favoriteIdsKey = 'soundeffect.favorite_ids';
+  static const _downloadedIdsKey = 'soundeffect.downloaded_ids';
 
   int _selectedIndex = 2;
   String? _playingId;
@@ -41,6 +43,36 @@ class _SoundEffectAppState extends State<SoundEffectApp> {
     super.initState();
     _preferences = SharedPreferences.getInstance();
     unawaited(_loadCustomTitles());
+    unawaited(_loadSavedIds());
+  }
+
+  Future<void> _loadSavedIds() async {
+    try {
+      final preferences = await _preferences;
+      final favorites = preferences.getStringList(_favoriteIdsKey) ?? <String>[];
+      final downloads = preferences.getStringList(_downloadedIdsKey) ?? <String>[];
+      if (!mounted) return;
+      setState(() {
+        _favoriteIds
+          ..clear()
+          ..addAll(favorites);
+        _downloadedIds
+          ..clear()
+          ..addAll(downloads);
+      });
+    } catch (_) {
+      if (mounted) _showMessage('Could not load saved sounds.');
+    }
+  }
+
+  Future<void> _saveIdSets() async {
+    try {
+      final preferences = await _preferences;
+      await preferences.setStringList(_favoriteIdsKey, _favoriteIds.toList());
+      await preferences.setStringList(_downloadedIdsKey, _downloadedIds.toList());
+    } catch (_) {
+      if (mounted) _showMessage('Could not save your library changes.');
+    }
   }
 
   Future<void> _loadCustomTitles() async {
@@ -153,11 +185,16 @@ class _SoundEffectAppState extends State<SoundEffectApp> {
     setState(() {
       if (!_favoriteIds.add(sound.id)) _favoriteIds.remove(sound.id);
     });
+    unawaited(_saveIdSets());
   }
 
   Future<void> _toggleDownload(SoundEffect sound) async {
+    // The same callback is used by the menu action to remove a sound from
+    // the app's Downloads list. This does not delete the exported MP3 file.
     if (_downloadedIds.contains(sound.id)) {
-      _showMessage('${_titleFor(sound)} is already saved on this device.');
+      setState(() => _downloadedIds.remove(sound.id));
+      unawaited(_saveIdSets());
+      _showMessage('${_titleFor(sound)} removed from your Downloads list.');
       return;
     }
 
@@ -187,6 +224,7 @@ class _SoundEffectAppState extends State<SoundEffectApp> {
 
       if (!mounted || savedLocation == null) return;
       setState(() => _downloadedIds.add(sound.id));
+      unawaited(_saveIdSets());
       _showMessage('${_titleFor(sound)} saved to this device.');
     } on FlutterError {
       if (!mounted) return;

@@ -49,6 +49,7 @@ class SoundEffectTile extends StatelessWidget {
             child: Icon(sound.icon, color: sound.color, size: 23),
           ),
           const SizedBox(width: 10),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,12 +76,14 @@ class SoundEffectTile extends StatelessWidget {
               ],
             ),
           ),
+
           IconButton(
             onPressed: onPlay,
             tooltip: isPlaying ? 'Pause preview' : 'Play preview',
             visualDensity: VisualDensity.compact,
             icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow, size: 21),
           ),
+
           IconButton(
             onPressed: onFavorite,
             tooltip: isFavorite ? 'Remove favorite' : 'Add to favorites',
@@ -93,6 +96,7 @@ class SoundEffectTile extends StatelessWidget {
                   : const Color(0xFFA3ABA5),
             ),
           ),
+
           IconButton(
             onPressed: isDownloaded ? null : onDownload,
             tooltip: isDownloaded ? 'Saved to device' : 'Save to device',
@@ -105,16 +109,57 @@ class SoundEffectTile extends StatelessWidget {
                   : const Color(0xFFA3ABA5),
             ),
           ),
+
           PopupMenuButton<String>(
             tooltip: 'Sound actions',
             onSelected: (action) {
-              if (action == 'rename') onRename();
-              if (action == 'credits') onOpenCredits();
+              if (action == 'rename') {
+                onRename();
+              } else if (action == 'credits') {
+                onOpenCredits();
+              } else if (action == 'remove_download') {
+                onDownload();
+              }
             },
             itemBuilder: (context) => [
               if (sound.creditUrl != null)
-                const PopupMenuItem(value: 'credits', child: Text('Credits')),
-              const PopupMenuItem(value: 'rename', child: Text('Rename')),
+                const PopupMenuItem<String>(
+                  value: 'credits',
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 20),
+                      SizedBox(width: 10),
+                      Text('Credits'),
+                    ],
+                  ),
+                ),
+
+              const PopupMenuItem<String>(
+                value: 'rename',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 20),
+                    SizedBox(width: 10),
+                    Text('Rename'),
+                  ],
+                ),
+              ),
+
+              if (isDownloaded)
+                const PopupMenuItem<String>(
+                  value: 'remove_download',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.delete_outline_rounded,
+                        color: Color(0xFFE45C36),
+                        size: 20,
+                      ),
+                      SizedBox(width: 10),
+                      Text('Remove from Downloads'),
+                    ],
+                  ),
+                ),
             ],
             icon: const Icon(Icons.more_vert, size: 19),
             padding: EdgeInsets.zero,
